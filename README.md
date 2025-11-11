@@ -47,3 +47,27 @@ Jogar Peça: Remove a peça da FRENTE da Fila (DEQUEUE) e repõe a Fila.
 Reservar Peça: Remove a peça da Fila (DEQUEUE) e a move para o TOPO da Pilha (PUSH), se houver espaço. Repõe a Fila.
 
 Usar Peça Reservada: Remove a peça do TOPO da Pilha (POP) para uso imediato. Repõe a Fila.
+
+O foco deste estágio é a coordenação de troca de dados entre as duas estruturas, respeitando as restrições de capacidade e a lógica de Fila/Pilha.
+
+Novas Funcionalidades de Troca
+As ações de jogo foram expandidas para permitir movimentos estratégicos de peças:
+
+1. Troca Simples (Ação 4)
+Ação: Substitui a peça que está na FRENTE da Fila (próxima a ser jogada) pela peça que está no TOPO da Pilha (última reservada).
+
+Restrição: Ambas as estruturas devem conter pelo menos uma peça.
+
+Efeito: É uma simples troca de valores (swap), sem remoção de peças do sistema.
+
+2. Troca Múltipla (Ação 5)
+Ação: Alterna as três primeiras peças da Fila com as três peças da Pilha de reserva.
+
+Restrição: A Pilha deve estar cheia (3 peças) e a Fila deve ter pelo menos 3 peças.
+
+Efeito: Troca em bloco de todos os elementos da Pilha com os elementos mais antigos da Fila.
+
+Regras de Reposição (Manutenção)
+As ações Jogar Peça, Reservar Peça e Usar Peça Reservada continuam gerando uma nova peça para ser adicionada ao final da Fila (ENQUEUE), mantendo a Fila sempre cheia (capacidade 5).
+
+As ações de Troca não removem peças do jogo, portanto, não acionam a reposição da Fila.
