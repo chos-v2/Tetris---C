@@ -1,0 +1,305 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> 
+
+// CONSTANTES E DEFINIÇÃO DA ESTRUTURA
+#define CAPACIDADE_FILA 5    
+#define CAPACIDADE_PILHA 3   
+
+// Struct Peca
+struct Peca {
+    char nome; 
+    int id;    
+};
+typedef struct Peca Peca;
+
+
+// VARIÁVEIS DE CONTROLE DA FILA (CIRCULAR)
+Peca filaPecas[CAPACIDADE_FILA]; 
+int frente = 0;                    
+int tras = 0;                      
+int contadorFila = 0;             
+
+// VARIÁVEIS DE CONTROLE DA PILHA (LIFO)
+Peca pilhaReserva[CAPACIDADE_PILHA];
+int topo = -1; 
+
+// VARIÁVEL GLOBAL PARA GERAÇÃO DE ID
+int idContador = 0; 
+
+
+// =================================================================
+// FUNÇÕES AUXILIARES E VERIFICAÇÃO
+// =================================================================
+
+Peca gerarPeca() {
+    Peca novaPeca;
+    
+    novaPeca.id = idContador++;
+    
+    char tipos[] = {'I', 'O', 'T', 'L', 'J', 'S', 'Z'};
+    int indiceTipo = rand() % 7; 
+    novaPeca.nome = tipos[indiceTipo];
+
+    return novaPeca;
+}
+
+// Funções de verificação
+int filaCheia() { return contadorFila == CAPACIDADE_FILA; }
+int filaVazia() { return contadorFila == 0; }
+int pilhaCheia() { return topo == CAPACIDADE_PILHA - 1; }
+int pilhaVazia() { return topo == -1; }
+
+// =================================================================
+// OPERAÇÕES DA FILA CIRCULAR
+// =================================================================
+
+// ENQUEUE
+void inserirPecaFila(Peca novaPeca) {
+    if (filaCheia()) {
+        printf("\n! ERRO: Fila cheia.\n");
+        return;
+    }
+
+    filaPecas[tras] = novaPeca;
+    tras = (tras + 1) % CAPACIDADE_FILA;
+    contadorFila++;
+}
+
+// DEQUEUE
+Peca removerPecaFila() {
+    if (filaVazia()) {
+        printf("\n! ERRO: Fila vazia. Nao ha pecas para jogar.\n");
+        return (Peca){'X', -1}; 
+    }
+
+    Peca pecaRemovida = filaPecas[frente];
+    frente = (frente + 1) % CAPACIDADE_FILA;
+    contadorFila--;
+    
+    return pecaRemovida;
+}
+
+
+// =================================================================
+// OPERAÇÕES DA PILHA
+// =================================================================
+
+// PUSH
+void reservarPeca(Peca pecaReservada) {
+    if (pilhaCheia()) {
+        printf("\n! ERRO: Pilha de reserva cheia.\n");
+        return;
+    }
+
+    topo++; 
+    pilhaReserva[topo] = pecaReservada;
+    printf("--> Peça [%c %d] adicionada à pilha de reserva (PUSH).\n", pecaReservada.nome, pecaReservada.id);
+}
+
+// POP
+Peca usarPecaReservada() {
+    if (pilhaVazia()) {
+        printf("\n! ERRO: Pilha de reserva vazia.\n");
+        return (Peca){'X', -1};
+    }
+
+    Peca pecaUsada = pilhaReserva[topo];
+    topo--; 
+    return pecaUsada;
+}
+
+
+// =================================================================
+// AÇÕES DO JOGO
+// =================================================================
+
+// Repõe a fila (Regra: manter a fila cheia após DEQUEUE ou POP)
+void reporFila(const char* acao) {
+    inserirPecaFila(gerarPeca());
+    printf("       -> Peça de reposicao [%c %d] adicionada ao fim da FILA apos %s.\n", filaPecas[(tras - 1 + CAPACIDADE_FILA) % CAPACIDADE_FILA].nome, filaPecas[(tras - 1 + CAPACIDADE_FILA) % CAPACIDADE_FILA].id, acao);
+}
+
+// 1. JOGAR PEÇA (Remove da Fila)
+void acaoJogarPeca() {
+    Peca jogada = removerPecaFila();
+    
+    if (jogada.id != -1) {
+        printf("\nJOGADA: Peça [%c %d] removida da FILA.\n", jogada.nome, jogada.id);
+        reporFila("jogada");
+    }
+}
+
+// 2. RESERVAR PEÇA (Fila -> Pilha)
+void acaoReservarPeca() {
+    if (pilhaCheia()) {
+        printf("\n! ACAO CANCELADA: Pilha de reserva cheia.\n");
+        return;
+    }
+    
+    Peca reservada = removerPecaFila();
+    
+    if (reservada.id != -1) {
+        reservarPeca(reservada); 
+        reporFila("reserva");
+    }
+}
+
+// 3. USAR PEÇA RESERVADA (Remove da Pilha)
+void acaoUsarPecaReservada() {
+    Peca usada = usarPecaReservada();
+    
+    if (usada.id != -1) {
+        printf("\nUSO RESERVADO: Peça [%c %d] removida do TOPO da PILHA.\n", usada.nome, usada.id);
+        reporFila("uso da reserva");
+    }
+}
+
+// 4. TROCAR PEÇA ATUAL (Fila[Frente] <-> Pilha[Topo])
+void acaoTrocarPecaAtual() {
+    if (filaVazia() || pilhaVazia()) {
+        printf("\n! ERRO: Para trocar, a Fila e a Pilha devem ter pecas.\n");
+        return;
+    }
+
+    Peca tempFila = filaPecas[frente];
+    
+    // Troca os valores
+    filaPecas[frente] = pilhaReserva[topo];
+    pilhaReserva[topo] = tempFila;
+
+    printf("\nTROCA SIMPLES: Peça [%c %d] da FILA trocada com peça [%c %d] da PILHA.\n", 
+        filaPecas[frente].nome, filaPecas[frente].id, 
+        pilhaReserva[topo].nome, pilhaReserva[topo].id);
+    
+    // Não repõe a fila.
+}
+
+// 5. TROCA MÚLTIPLA (Fila[3 Primeiros] <-> Pilha[3 Peças])
+void acaoTrocaMultipla() {
+    // CAPACIDADE_PILHA é 3, usada como critério de contagem.
+    if (contadorFila < CAPACIDADE_PILHA) { 
+        printf("\n! ERRO: A Fila deve ter no minimo %d pecas (tem %d).\n", CAPACIDADE_PILHA, contadorFila);
+        return;
+    }
+    if (topo + 1 != CAPACIDADE_PILHA) { 
+        printf("\n! ERRO: A Pilha deve ter exatamente %d pecas (tem %d).\n", CAPACIDADE_PILHA, topo + 1);
+        return;
+    }
+
+    printf("\nINICIANDO TROCA MULTIPLA (3 PEÇAS)\n");
+
+    for (int i = 0; i < CAPACIDADE_PILHA; i++) {
+        // Índice circular na fila: Frente + i (peças mais antigas)
+        int indexFila = (frente + i) % CAPACIDADE_FILA;
+        // Índice na pilha: i (0, 1, 2)
+        int indexPilha = i; 
+
+        Peca temp = filaPecas[indexFila];
+        filaPecas[indexFila] = pilhaReserva[indexPilha];
+        pilhaReserva[indexPilha] = temp;
+    }
+
+    printf("--> Troca em bloco concluida entre os 3 primeiros da Fila e as 3 peças da Pilha.\n");
+    // Não repõe a fila.
+}
+
+// Exibir o estado atual de AMBAS as estruturas
+void exibirEstadoAtual() {
+    printf("\nESTADO ATUAL DO JOGO\n");
+
+    // Exibição da FILA (Peças Futuras)
+    printf("FILA DE PEÇAS FUTURAS (%d/%d):\n", contadorFila, CAPACIDADE_FILA);
+    if (filaVazia()) {
+        printf("  [ Fila Vazia ]\n");
+    } else {
+        printf("  [FRENTE] -> ");
+        int i = frente;
+        int count = 0;
+        while (count < contadorFila) {
+            printf("[%c %d] ", filaPecas[i].nome, filaPecas[i].id);
+            i = (i + 1) % CAPACIDADE_FILA;
+            count++;
+        }
+        printf("<- [TRAS]\n");
+    }
+    
+    // Exibição da PILHA (Peças Reservadas)
+    printf("\nPILHA DE RESERVA (%d/%d):\n", topo + 1, CAPACIDADE_PILHA);
+    if (pilhaVazia()) {
+        printf("  [ Pilha Vazia ]\n");
+    } else {
+        printf("  [TOPO] -> ");
+        for (int i = topo; i >= 0; i--) {
+            printf("[%c %d] ", pilhaReserva[i].nome, pilhaReserva[i].id);
+        }
+        printf("<- [BASE]\n");
+    }
+}
+
+
+// =================================================================
+// BLOCO PRINCIPAL
+// =================================================================
+
+int main() {
+    int opcao;
+    
+    srand(time(NULL));
+    idContador = 0;
+
+    printf("Simulacao Tetris Stack: Gerenciamento Avancado de Pecas\n");
+    
+    // Inicialização da FILA
+    printf("Inicializando a fila com %d pecas...\n", CAPACIDADE_FILA);
+    for (int i = 0; i < CAPACIDADE_FILA; i++) {
+        inserirPecaFila(gerarPeca());
+    }
+
+    do {
+        exibirEstadoAtual();
+
+        printf("\nOPÇÕES DE AÇÃO:\n");
+        printf("1. Jogar peça (DEQUEUE - Remove da Fila)\n");
+        printf("2. Reservar peça (Fila -> Pilha)\n");
+        printf("3. Usar peça reservada (POP - Remove da Pilha)\n");
+        printf("4. Trocar peça atual (Fila[Frente] <-> Pilha[Topo])\n");
+        printf("5. Troca multipla (Fila[3 Primeiros] <-> Pilha[3 Peças])\n");
+        printf("0. Sair\n");
+        printf("Opcao: ");
+        
+        if (scanf("%d", &opcao) != 1) {
+            printf("\n! Entrada invalida.\n");
+            while (getchar() != '\n');
+            opcao = -1; 
+            continue;
+        }
+
+        switch (opcao) {
+            case 1:
+                acaoJogarPeca();
+                break;
+            case 2:
+                acaoReservarPeca();
+                break;
+            case 3:
+                acaoUsarPecaReservada();
+                break;
+            case 4:
+                acaoTrocarPecaAtual();
+                break;
+            case 5:
+                acaoTrocaMultipla();
+                break;
+            case 0:
+                printf("\nEncerrando a simulacao.\n");
+                break;
+            default:
+                printf("\n! Opcao desconhecida. Tente novamente.\n");
+        }
+        
+    } while (opcao != 0);
+
+    return 0;
+}
