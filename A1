@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> 
+
+// CONSTANTES E DEFINIÇÃO DA ESTRUTURA
+#define CAPACIDADE_MAXIMA 5 
+
+// Struct Peca
+struct Peca {
+    char nome; 
+    int id;    
+};
+typedef struct Peca Peca;
+
+
+// VARIÁVEIS DE CONTROLE DA FILA
+Peca filaPecas[CAPACIDADE_MAXIMA]; 
+int frente = 0;                    
+int tras = 0;                      
+int contadorPecas = 0;             
+int idContador = 0;                
+
+
+// =================================================================
+// FUNÇÕES AUXILIARES
+// =================================================================
+
+Peca gerarPeca() {
+    Peca novaPeca;
+    
+    novaPeca.id = idContador++;
+    
+    char tipos[] = {'I', 'O', 'T', 'L', 'J', 'S', 'Z'};
+    int indiceTipo = rand() % 7; 
+    novaPeca.nome = tipos[indiceTipo];
+
+    return novaPeca;
+}
+
+int filaCheia() {
+    return contadorPecas == CAPACIDADE_MAXIMA;
+}
+
+int filaVazia() {
+    return contadorPecas == 0;
+}
+
+// =================================================================
+// OPERAÇÕES DA FILA CIRCULAR
+// =================================================================
+
+// ENQUEUE: Inserir nova peça ao final da fila
+void inserirPeca(Peca novaPeca) {
+    if (filaCheia()) {
+        printf("\n! ERRO: Fila de pecas futuras cheia. Nao e possivel inserir.\n");
+        return;
+    }
+
+    filaPecas[tras] = novaPeca;
+    
+    // Atualiza 'tras' de forma circular
+    tras = (tras + 1) % CAPACIDADE_MAXIMA;
+    
+    contadorPecas++;
+
+    printf("--> Peça [%c %d] inserida (ENQUEUE).\n", novaPeca.nome, novaPeca.id);
+}
+
+// DEQUEUE: Jogar uma peça (remover da frente da fila)
+void jogarPeca() {
+    if (filaVazia()) {
+        printf("\n! ERRO: Fila de pecas vazia. Nao ha pecas para jogar.\n");
+        return;
+    }
+
+    Peca pecaRemovida = filaPecas[frente];
+    
+    // Atualiza 'frente' de forma circular
+    frente = (frente + 1) % CAPACIDADE_MAXIMA;
+    
+    contadorPecas--;
+
+    printf("--> Peça [%c %d] jogada (DEQUEUE).\n", pecaRemovida.nome, pecaRemovida.id);
+}
+
+// Exibir o estado atual da fila
+void exibirFila() {
+    printf("\nESTADO ATUAL DA FILA (Total: %d/%d):\n", contadorPecas, CAPACIDADE_MAXIMA);
+    
+    if (filaVazia()) {
+        printf("[ Fila Vazia ]\n");
+        return;
+    }
+
+    int i = frente;
+    int count = 0;
+    
+    printf("Fila de pecas [FRENTE] -> ");
+    
+    while (count < contadorPecas) {
+        printf("[%c %d] ", filaPecas[i].nome, filaPecas[i].id);
+        
+        i = (i + 1) % CAPACIDADE_MAXIMA;
+        count++;
+    }
+    
+    printf("<- [FIM]\n");
+}
+
+
+// =================================================================
+// BLOCO PRINCIPAL
+// =================================================================
+
+int main() {
+    int opcao;
+    
+    srand(time(NULL));
+    idContador = 0;
+
+    printf("Simulacao Tetris Stack: Fila de Pecas Futuras\n");
+    
+    // INICIALIZAÇÃO DA FILA
+    printf("Inicializando a fila com %d pecas...\n", CAPACIDADE_MAXIMA);
+    for (int i = 0; i < CAPACIDADE_MAXIMA; i++) {
+        inserirPeca(gerarPeca());
+    }
+
+    do {
+        exibirFila();
+
+        printf("\nOPÇÕES DE AÇÃO:\n");
+        printf("1. Jogar peça (DEQUEUE)\n");
+        printf("2. Inserir nova peça (ENQUEUE)\n");
+        printf("0. Sair\n");
+        printf("Opcao: ");
+        
+        if (scanf("%d", &opcao) != 1) {
+            printf("\n! Entrada invalida.\n");
+            while (getchar() != '\n');
+            opcao = -1; 
+            continue;
+        }
+
+        switch (opcao) {
+            case 1:
+                jogarPeca();
+                break;
+            case 2:
+                inserirPeca(gerarPeca());
+                break;
+            case 0:
+                printf("\nEncerrando a simulacao.\n");
+                break;
+            default:
+                printf("\n! Opcao desconhecida. Tente novamente.\n");
+        }
+        
+    } while (opcao != 0);
+
+    return 0;
+}
